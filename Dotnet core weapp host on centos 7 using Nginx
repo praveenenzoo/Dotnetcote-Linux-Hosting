@@ -1,0 +1,264 @@
+How To run dotnet core webapp on centos 7 step by step guide
+
+yum install epel-release
+
+sudo rpm -Uvh https://packages.microsoft.com/config/rhel/7/packages-microsoft-prod.rpm
+sudo yum update
+sudo yum install dotnet-sdk-2.2
+sudo yum install firewalld
+sudo yum install libunwind libicu
+export PATH=$PATH:$HOME/dotnet
+
+===========Got to the project and run project.web.dll  ==========
+
+dotnet NavPortal.Web.dll
+
+------Create Kestrel service to auto run project.service.dll----------
+sudo vim /etc/systemd/system/demoProject.service
+[Unit]
+Description=Demo ASP.Net Project
+
+[Service]
+WorkingDirectory=/root/Portable/
+ExecStart=/usr/bin/dotnet /root/Portable/NavPortal.Web.dll
+Restart=always
+RestartSec=10
+SyslogIdentifier=DemoProject
+User=root
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=DOTNET_PRINT_TELEMETRY_MESSAGE=false
+
+[Install]
+WantedBy=multi-user.target
+
+--------Now Test locally website are running or not http://localhost:5000----
+curl http://localhost:5000
+
+sudo systemctl start nginx
+sudo systemctl status nginx.service
+sudo firewall-cmd --permanent --zone=public --add-service=http
+sudo firewall-cmd --permanent --zone=public --add-service=https
+sudo firewall-cmd --reload
+
+cp -R /etc/nginx/nginx.conf /etc/nginx/nginx.conf.orig
+
+vim /etc/nginx/nginx.conf
+=====================================================
+# For more information on configuration, see:
+#   * Official English Documentation: http://nginx.org/en/docs/
+#   * Official Russian Documentation: http://nginx.org/ru/docs/
+
+user nginx;
+worker_processes auto;
+error_log /var/log/nginx/error.log;
+pid /run/nginx.pid;
+
+# Load dynamic modules. See /usr/share/nginx/README.dynamic.
+include /usr/share/nginx/modules/*.conf;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                      '$status $body_bytes_sent "$http_referer" '
+                      '"$http_user_agent" "$http_x_forwarded_for"';
+
+    access_log  /var/log/nginx/access.log  main;
+
+    sendfile            on;
+    tcp_nopush          on;
+    tcp_nodelay         on;
+    keepalive_timeout   65;
+    types_hash_max_size 2048;
+
+    include             /etc/nginx/mime.types;
+    default_type        application/octet-stream;
+
+    # Load modular configuration files from the /etc/nginx/conf.d directory.
+    # See http://nginx.org/en/docs/ngx_core_module.html#include
+    # for more information.
+    include /etc/nginx/conf.d/*.conf;
+
+    server {
+        listen       80 default_server;
+        listen       [::]:80 default_server;
+        server_name  _;
+        root         /usr/share/nginx/html;
+
+        # Load configuration files for the default server block.
+        include /etc/nginx/default.d/*.conf;
+
+        location / {
+        proxy_pass http://localhost:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection keep-alive;
+        proxy_set_header Host $http_host;
+        proxy_cache_bypass $http_upgrade;
+        }
+
+
+
+        error_page 404 /404.html;
+            location = /40x.html {
+        }
+    }
+
+# Settings for a TLS enabled server.
+#
+#    server {
+#        listen       443 ssl http2 default_server;
+#        listen       [::]:443 ssl http2 default_server;
+#        server_name  _;
+#        root         /usr/share/nginx/html;
+#
+#        ssl_certificate "/etc/pki/nginx/server.crt";
+#        ssl_certificate_key "/etc/pki/nginx/private/server.key";
+#        ssl_session_cache shared:SSL:1m;
+#        ssl_session_timeout  10m;
+#        ssl_ciphers HIGH:!aNULL:!MD5;
+#        ssl_prefer_server_ciphers on;
+#
+#        # Load configuration files for the default server block.
+#        include /etc/nginx/default.d/*.conf;
+#
+#        location / {
+#        }
+#
+#        error_page 404 /404.html;
+#            location = /40x.html {
+#        }
+#
+#        error_page 500 502 503 504 /50x.html;
+#            location = /50x.html {
+#        }
+#    }
+
+}
+
+=====================================
+change configuration is :
+
+server {
+    listen 80;
+    location / {
+  proxy_pass http://localhost:5000;
+  proxy_http_version 1.1;
+  proxy_set_header Upgrade $http_upgrade;
+  proxy_set_header Connection keep-alive;
+  proxy_set_header Host $http_host;
+  proxy_cache_bypass $http_upgrade;
+  }
+}
+-------------------------------------
+sudo nginx -t
+sudo nginx -s reload
+==Bug with selinux===Selinux block 5000 port to all incomming connection==
+
+setsebool -P httpd_can_network_connect 1
+ausearch -c 'nginx' --raw | auditallow -M my-nginx
+semodule -i my-nginx.pp
+
+=====================================================
+CentOS Linux release 7.6.1810 (Core)
+3.10.0-957.10.1.el7.x86_64
+nginx version: nginx/1.12.2
+
+
+
+
+
+
+==============================History========================
+2  yum install epel-release
+    3  yum update -y
+    4  yum clean all
+    5  kill -9 /run/yum.pid
+    7  cat /var/run/yum.pid
+    8  kill -9 16708
+    9  yum update -y
+   10  sudo rpm -Uvh https://packages.microsoft.com/config/rhel/7/packages-microsoft-prod.rpm
+   11  sudo yum update
+   12  sudo yum install dotnet-sdk-2.2
+   13  vi /etc/selinux/config
+   14  sudo yum install firewalld
+   15  sudo systemctl start firewalld
+   16  sudo systemctl enable firewalld
+   17  sudo systemctl status firewalld
+   18  sudo firewall-cmd --reload
+   19  sudo yum install libunwind libicu
+   20  sudo yum install libicu
+   21  export PATH=$PATH:$HOME/dotnet
+   22  dotnet --version
+   23  ll
+   24  mv Portable\ Build/ Portable
+   25  cd Portable/
+   26  ll
+   27  dotnet NavPortal.Web.dll
+   28  pwd
+   29  vim
+   30  vim sudo nano /etc/systemd/system/demoProject.service
+   31  yum install nginx
+   32  sudo systemctl start nginx
+   33  sudo systemctl enable nginx
+   34  sudo systemctl status nginx
+   35  sudo firewall-cmd --permanent --zone=public --add-port=80/tcp
+   36  sudo firewall-cmd --permanent --zone=public --add-port=22/tcp
+   37  sudo firewall-cmd --permanent --zone=public --add-port=22/udp
+   38  sudo firewall-cmd --permanent --zone=public --add-port=443/udp
+   39  sudo firewall-cmd --reload
+   40  cat /etc/passwd
+   41  cd ..
+   42  vim /etc/systemd/system/demoProject.service
+   43  sudo systemctl enable demoProject.service
+   44  sudo systemctl start demoProject.service
+   45  sudo systemctl status demoProject.service
+   46  /etc/systemd/system/demoProject.service enabled
+   47   systemctl UNIT
+   48   systemctl demoProject.service
+   49  vim /etc/systemd/system/demoProject.service
+   50  yum install vim -y
+   51  vim /etc/systemd/system/demoProject.service
+   52  sudo systemctl start demoProject.service
+   53  systemctl daemon-reload
+   54  sudo systemctl start demoProject.service
+   55  sudo systemctl status demoProject.service
+   56  curl http://localhost:5000
+   57  sudo systemctl start nginx
+   58  sudo systemctl status nginx.service
+   59  sudo firewall-cmd --permanent --zone=public --add-service=http
+   60  sudo firewall-cmd --permanent --zone=public --add-service=https
+   61  sudo firewall-cmd --reload
+   62  vim /etc/nginx/nginx.conf
+   63  cp -R /etc/nginx/nginx.conf /etc/nginx/nginx.conf.orig
+   64  vim /etc/nginx/nginx.conf
+   65  sudo nginx -t
+   66  vim /etc/nginx/nginx.conf
+   67  sudo nginx -t
+   68  vim /etc/nginx/nginx.conf
+   69  cp -R /etc/nginx/nginx.conf.orig /etc/nginx/nginx.conf
+   70  vim /etc/nginx/nginx.conf
+   71  sudo nginx -t
+   72  vim /etc/nginx/nginx.conf
+   73  sudo nginx -t
+   74  cp -R /etc/nginx/nginx.conf.orig /etc/nginx/nginx.conf
+   75  sudo nginx -t
+   76  vim /etc/nginx/nginx.conf
+   77  sudo nginx -t
+   78  vim /etc/nginx/nginx.conf
+   79  sudo nginx -t
+   80  vim /etc/nginx/nginx.conf
+   81  sudo nginx -t
+   82  vim /etc/nginx/nginx.conf
+   83  sudo nginx -t
+   84  vim /etc/nginx/nginx.conf
+   85  cp -R /etc/nginx/nginx.conf.orig /etc/nginx/nginx.conf
+   86  vim /etc/nginx/nginx.conf
+   87  sudo nginx -t
+   88  vim /etc/nginx/nginx.conf
+   89  sudo nginx -t
+   90  sudo nginx -s reload
+   91  history
+
