@@ -19,8 +19,8 @@ sudo vim /etc/systemd/system/demoProject.service
 Description=Demo ASP.Net Project
 
 [Service]
-WorkingDirectory=/root/Portable/
-ExecStart=/usr/bin/dotnet /root/Portable/NavPortal.Web.dll
+WorkingDirectory=/root/foldename/
+ExecStart=/usr/bin/dotnet /root/foldername/demoProject.service
 Restart=always
 RestartSec=10
 SyslogIdentifier=DemoProject
