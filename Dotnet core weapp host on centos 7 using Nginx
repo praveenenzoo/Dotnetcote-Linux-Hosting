@@ -11,7 +11,7 @@ export PATH=$PATH:$HOME/dotnet
 
 ===========Got to the project and run project.web.dll  ==========
 
-dotnet NavPortal.Web.dll
+dotnet websitel.Web.dll
 
 ------Create Kestrel service to auto run project.service.dll----------
 sudo vim /etc/systemd/system/demoProject.service
